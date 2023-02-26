@@ -1,4 +1,4 @@
-function checkResult(tiles) {
+function checkResult(tiles, socket, playersPlaying) {
   const winningCombinations = [
     ["area1", "area4", "area7"],
     ["area1", "area2", "area3"],
@@ -17,13 +17,30 @@ function checkResult(tiles) {
       tiles[tile1] === tiles[tile2] &&
       tiles[tile1] === tiles[tile3]
     ) {
-      console.log(`${tiles[tile1]} venceu!`);
-      return;
+      socket.emit("end_of_round", { isDraw: false, winner: tiles[tile1] });
+      socket.broadcast.emit("end_of_round", {
+        isDraw: false,
+        winner: tiles[tile1],
+      });
+      const updatedRoundScore = playersPlaying.map((playerPlaying) => {
+        if (playerPlaying.id === tiles[tile1]) {
+          playerPlaying.roundScore++;
+          return playerPlaying;
+        }
+        return playerPlaying;
+      });
+
+      socket.emit("set_players_playing", updatedRoundScore);
+      socket.broadcast.emit("set_players_playing", updatedRoundScore);
+
+      return updatedRoundScore;
     }
   }
   if (Object.values(tiles).every((value) => value !== null)) {
     console.log("empate");
-    return;
+    socket.emit("end_of_round", { isDraw: true, winner: null });
+    socket.broadcast.emit("end_of_round", { isDraw: true, winner: null });
+    return null;
   }
 }
 

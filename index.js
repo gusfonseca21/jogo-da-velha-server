@@ -61,7 +61,10 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("set_active_player", activePlayer);
 
     if (connectedPlayers.length === 2) {
-      playersPlaying.push(connectedPlayers[0], connectedPlayers[1]);
+      playersPlaying.push(
+        { ...connectedPlayers[0], roundScore: 0 },
+        { ...connectedPlayers[1], roundScore: 0 }
+      );
       activePlayer = connectedPlayers[0];
 
       socket.emit("set_players_playing", playersPlaying);
@@ -137,7 +140,11 @@ io.on("connection", (socket) => {
     socket.emit("set_active_player", activePlayer);
     socket.broadcast.emit("set_active_player", activePlayer);
 
-    checkResult(tiles);
+    const updatedScore = checkResult(tiles, socket, playersPlaying);
+
+    if (updatedScore) {
+      playersPlaying = updatedScore;
+    }
   });
 });
 
