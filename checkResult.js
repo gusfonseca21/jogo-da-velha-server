@@ -1,4 +1,10 @@
-function checkResult(tiles, socket, playersPlaying) {
+function checkResult(
+  tiles,
+  socket,
+  playersPlaying,
+  connectedPlayers,
+  resetBoard
+) {
   const winningCombinations = [
     ["area1", "area4", "area7"],
     ["area1", "area2", "area3"],
@@ -17,21 +23,39 @@ function checkResult(tiles, socket, playersPlaying) {
       tiles[tile1] === tiles[tile2] &&
       tiles[tile1] === tiles[tile3]
     ) {
-      socket.emit("end_of_round", { isDraw: false, winner: tiles[tile1] });
+      const winner = tiles[tile1];
+      socket.emit("end_of_round", { isDraw: false, winner });
       socket.broadcast.emit("end_of_round", {
         isDraw: false,
-        winner: tiles[tile1],
+        winner,
       });
+      let updatedGameScore = connectedPlayers;
       const updatedRoundScore = playersPlaying.map((playerPlaying) => {
-        if (playerPlaying.id === tiles[tile1]) {
+        if (playerPlaying.id === winner) {
           playerPlaying.roundScore++;
+          if (playerPlaying.roundScore === 3) {
+            playerPlaying.roundScore = 0;
+            playerPlaying.gameScore++;
+
+            updatedGameScore = connectedPlayers.map((player) => {
+              if (player.id === playerPlaying.id) {
+                player.gameScore++;
+                return player;
+              }
+              return player;
+            });
+          }
           return playerPlaying;
         }
+
+        resetBoard(socket);
         return playerPlaying;
       });
 
       socket.emit("set_players_playing", updatedRoundScore);
       socket.broadcast.emit("set_players_playing", updatedRoundScore);
+      socket.emit("update_players_list", updatedGameScore);
+      socket.broadcast.emit("update_players_list", updatedGameScore);
 
       return updatedRoundScore;
     }
