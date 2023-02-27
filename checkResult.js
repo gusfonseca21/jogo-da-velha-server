@@ -1,3 +1,31 @@
+function updatePlayersPlaying(
+  socket,
+  playersPlaying,
+  connectedPlayers,
+  winnerId
+) {
+  const loser = playersPlaying.filter(
+    (playerPlaying) => playerPlaying.id !== winnerId
+  )[0];
+
+  connectedPlayers.forEach((player, index) => {
+    if (player.id === loser.id) {
+      const removedPlayer = connectedPlayers.splice(index, 1)[0];
+      removedPlayer.roundScore = 0;
+      connectedPlayers.push(removedPlayer);
+    }
+  });
+
+  playersPlaying = [connectedPlayers[0], connectedPlayers[1]];
+
+  console.log(playersPlaying);
+
+  socket.emit("set_players_playing", playersPlaying);
+  socket.broadcast.emit("set_players_playing", playersPlaying);
+  socket.emit("update_players_list", connectedPlayers);
+  socket.broadcast.emit("update_players_list", connectedPlayers);
+}
+
 function checkResult(
   tiles,
   socket,
@@ -34,8 +62,14 @@ function checkResult(
         if (playerPlaying.id === winner) {
           playerPlaying.roundScore++;
           if (playerPlaying.roundScore === 3) {
-            playerPlaying.roundScore = 0;
             playerPlaying.gameScore++;
+
+            updatePlayersPlaying(
+              socket,
+              playersPlaying,
+              connectedPlayers,
+              winner
+            );
 
             updatedGameScore = connectedPlayers.map((player) => {
               if (player.id === playerPlaying.id) {
