@@ -142,17 +142,7 @@ io.on("connection", (socket) => {
     socket.emit("set_active_player", activePlayer);
     socket.broadcast.emit("set_active_player", activePlayer);
 
-    const updatedScore = checkResult(
-      tiles,
-      socket,
-      playersPlaying,
-      connectedPlayers,
-      resetBoard
-    );
-
-    if (updatedScore) {
-      playersPlaying = updatedScore;
-    }
+    checkResult(tiles, socket, playersPlaying, connectedPlayers, resetBoard);
   });
 });
 

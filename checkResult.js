@@ -1,29 +1,41 @@
-function updatePlayersPlaying(
-  socket,
-  playersPlaying,
-  connectedPlayers,
-  winnerId
-) {
-  const loser = playersPlaying.filter(
-    (playerPlaying) => playerPlaying.id !== winnerId
+function updatePlayersPlaying(socket, updatedRoundScore, connectedPlayers) {
+  // 1: atualizar a ordem de connectedPlayers, adicionando gameScore ao vencedor
+  const loser = updatedRoundScore.filter(
+    (player) => player.roundScore !== 3
+  )[0];
+  const winner = updatedRoundScore.filter(
+    (player) => player.roundScore === 3
   )[0];
 
-  connectedPlayers.forEach((player, index) => {
+  let updatedConnectedPlayers = connectedPlayers;
+  updatedConnectedPlayers.forEach((player, index) => {
     if (player.id === loser.id) {
-      const removedPlayer = connectedPlayers.splice(index, 1)[0];
-      removedPlayer.roundScore = 0;
-      connectedPlayers.push(removedPlayer);
+      const removedPlayer = updatedConnectedPlayers.splice(index, 1)[0];
+      updatedConnectedPlayers.push(removedPlayer);
+    }
+    if (player.id === winner.id) {
+      player.gameScore++;
     }
   });
 
-  playersPlaying = [connectedPlayers[0], connectedPlayers[1]];
+  socket.emit("update_players_list", updatedConnectedPlayers);
+  socket.broadcast.emit("update_players_list", updatedConnectedPlayers);
 
-  console.log(playersPlaying);
+  // 2: atualizar playersPlaying e zerar o roundScore
+  let updatedPlayersPlaying = [];
 
-  socket.emit("set_players_playing", playersPlaying);
-  socket.broadcast.emit("set_players_playing", playersPlaying);
-  socket.emit("update_players_list", connectedPlayers);
-  socket.broadcast.emit("update_players_list", connectedPlayers);
+  updatedConnectedPlayers.forEach((player, index) => {
+    if (index < 2) {
+      updatedPlayersPlaying.push({ ...player, roundScore: 0 });
+    }
+  });
+
+  socket.emit("set_players_playing", updatedPlayersPlaying);
+  socket.broadcast.emit("set_players_playing", updatedPlayersPlaying);
+
+  // 3: setar o player ativo
+  socket.emit("set_active_player", updatedPlayersPlaying[0]);
+  socket.broadcast.emit("set_active_player", updatedPlayersPlaying[0]);
 }
 
 function checkResult(
@@ -57,28 +69,10 @@ function checkResult(
         isDraw: false,
         winner,
       });
-      let updatedGameScore = connectedPlayers;
+
       const updatedRoundScore = playersPlaying.map((playerPlaying) => {
         if (playerPlaying.id === winner) {
           playerPlaying.roundScore++;
-          if (playerPlaying.roundScore === 3) {
-            playerPlaying.gameScore++;
-
-            updatePlayersPlaying(
-              socket,
-              playersPlaying,
-              connectedPlayers,
-              winner
-            );
-
-            updatedGameScore = connectedPlayers.map((player) => {
-              if (player.id === playerPlaying.id) {
-                player.gameScore++;
-                return player;
-              }
-              return player;
-            });
-          }
           return playerPlaying;
         }
 
@@ -86,12 +80,20 @@ function checkResult(
         return playerPlaying;
       });
 
-      socket.emit("set_players_playing", updatedRoundScore);
-      socket.broadcast.emit("set_players_playing", updatedRoundScore);
-      socket.emit("update_players_list", updatedGameScore);
-      socket.broadcast.emit("update_players_list", updatedGameScore);
+      const didSomeoneWon = playersPlaying.reduce((acc, player) => {
+        if (player.roundScore === 3) {
+          acc = true;
+        }
+        return acc;
+      }, false);
 
-      return updatedRoundScore;
+      if (didSomeoneWon) {
+        updatePlayersPlaying(socket, updatedRoundScore, connectedPlayers);
+        return;
+      } else {
+        socket.emit("set_players_playing", updatedRoundScore);
+        socket.broadcast.emit("set_players_playing", updatedRoundScore);
+      }
     }
   }
   if (Object.values(tiles).every((value) => value !== null)) {
