@@ -8,11 +8,15 @@ function updatePlayersPlaying(socket, updatedRoundScore, connectedPlayers) {
   )[0];
 
   let updatedConnectedPlayers = connectedPlayers;
+
   updatedConnectedPlayers.forEach((player, index) => {
     if (player.id === loser.id) {
       const removedPlayer = updatedConnectedPlayers.splice(index, 1)[0];
       updatedConnectedPlayers.push(removedPlayer);
     }
+  });
+
+  updatedConnectedPlayers.forEach((player) => {
     if (player.id === winner.id) {
       player.gameScore++;
     }
@@ -36,6 +40,13 @@ function updatePlayersPlaying(socket, updatedRoundScore, connectedPlayers) {
   // 3: setar o player ativo
   socket.emit("set_active_player", updatedPlayersPlaying[0]);
   socket.broadcast.emit("set_active_player", updatedPlayersPlaying[0]);
+
+  const results = {
+    updatedConnectedPlayers,
+    updatedPlayersPlaying,
+  };
+
+  return results;
 }
 
 function checkResult(
@@ -64,15 +75,15 @@ function checkResult(
       tiles[tile1] === tiles[tile3]
     ) {
       const winner = tiles[tile1];
-      socket.emit("end_of_round", { isDraw: false, winner });
-      socket.broadcast.emit("end_of_round", {
-        isDraw: false,
-        winner,
-      });
 
       const updatedRoundScore = playersPlaying.map((playerPlaying) => {
         if (playerPlaying.id === winner) {
           playerPlaying.roundScore++;
+          socket.emit("end_of_round", { isDraw: false, winner });
+          socket.broadcast.emit("end_of_round", {
+            isDraw: false,
+            winner,
+          });
           return playerPlaying;
         }
 
@@ -88,8 +99,23 @@ function checkResult(
       }, false);
 
       if (didSomeoneWon) {
-        updatePlayersPlaying(socket, updatedRoundScore, connectedPlayers);
-        return;
+        const results = updatePlayersPlaying(
+          socket,
+          updatedRoundScore,
+          connectedPlayers
+        );
+
+        socket.emit("end_of_round", {
+          isDraw: false,
+          winner,
+          gameWinner: true,
+        });
+        socket.broadcast.emit("end_of_round", {
+          isDraw: false,
+          winner,
+          gameWinner: true,
+        });
+        return results;
       } else {
         socket.emit("set_players_playing", updatedRoundScore);
         socket.broadcast.emit("set_players_playing", updatedRoundScore);

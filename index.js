@@ -113,10 +113,12 @@ io.on("connection", (socket) => {
       date: new Date(),
     };
 
-    socket.broadcast.emit("update_players_list", connectedPlayers);
-    socket.broadcast.emit("set_players_playing", playersPlaying);
-    socket.broadcast.emit("set_active_player", activePlayer);
-    socket.broadcast.emit("message_received", disconnectMessage);
+    if (disconnectedPlayer) {
+      socket.broadcast.emit("update_players_list", connectedPlayers);
+      socket.broadcast.emit("set_players_playing", playersPlaying);
+      socket.broadcast.emit("set_active_player", activePlayer);
+      socket.broadcast.emit("message_received", disconnectMessage);
+    }
   });
 
   socket.on("message_sent", (data) => {
@@ -142,7 +144,19 @@ io.on("connection", (socket) => {
     socket.emit("set_active_player", activePlayer);
     socket.broadcast.emit("set_active_player", activePlayer);
 
-    checkResult(tiles, socket, playersPlaying, connectedPlayers, resetBoard);
+    const results = checkResult(
+      tiles,
+      socket,
+      playersPlaying,
+      connectedPlayers,
+      resetBoard
+    );
+
+    if (results) {
+      connectedPlayers = results.updatedConnectedPlayers;
+      playersPlaying = results.updatedPlayersPlaying;
+      activePlayer = results.updatedPlayersPlaying[0];
+    }
   });
 });
 
