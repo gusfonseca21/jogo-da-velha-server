@@ -123,9 +123,9 @@ function checkResult(
     }
   }
   if (Object.values(tiles).every((value) => value !== null)) {
-    console.log("empate");
     socket.emit("end_of_round", { isDraw: true, winner: null });
     socket.broadcast.emit("end_of_round", { isDraw: true, winner: null });
+    resetBoard(socket);
     return null;
   }
 }

@@ -12,7 +12,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://rolezeiros-jogo-da-velha.netlify.app/",
+    origin: "https://rolezeiros-jogo-da-velha.netlify.app",
     methods: ["GET", "POST"],
   },
 });
@@ -83,37 +83,38 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    let disconnectedPlayer;
+    let disconnectedPlayer = null;
     connectedPlayers.forEach((connectedPlayer, index) => {
       if (connectedPlayer.id === socket.id) {
-        playerWhoLeft = connectedPlayer;
         disconnectedPlayer = connectedPlayers.splice(index, 1)[0];
       }
     });
 
-    playersPlaying.forEach((playerPlaying) => {
-      if (playerPlaying.id === disconnectedPlayer?.id) resetBoard(socket);
-    });
-
-    // Atualizando os jogadores que estarão jogando
-    if (connectedPlayers.length < 2) playersPlaying.length = 0;
-    if (connectedPlayers.length >= 2) {
-      playersPlaying = [connectedPlayers[0], connectedPlayers[1]];
-    }
-
-    // Se o jogador ativo se disconectar, alterar o jogador ativo
-    if (disconnectedPlayer?.id === activePlayer?.id) {
-      activePlayer = playersPlaying[0];
-    }
-
-    // Enviando mensagem de jogador desconectado
-    const disconnectMessage = {
-      sender: { name: "Servidor", selectedAvatar: null, id: "1" },
-      message: `${disconnectedPlayer?.name} se desconectou`,
-      date: new Date(),
-    };
-
     if (disconnectedPlayer) {
+      playersPlaying.forEach((playerPlaying) => {
+        if (disconnectedPlayer.id) {
+          if (playerPlaying.id === disconnectedPlayer.id) resetBoard(socket);
+        }
+      });
+
+      // Atualizando os jogadores que estarão jogando
+      if (connectedPlayers.length < 2) playersPlaying.length = 0;
+      if (connectedPlayers.length >= 2) {
+        playersPlaying = [connectedPlayers[0], connectedPlayers[1]];
+      }
+
+      // Se o jogador ativo se disconectar, alterar o jogador ativo
+      if (disconnectedPlayer.id === activePlayer.id) {
+        activePlayer = playersPlaying[0];
+      }
+
+      // Enviando mensagem de jogador desconectado
+      const disconnectMessage = {
+        sender: { name: "Servidor", selectedAvatar: null, id: "1" },
+        message: `${disconnectedPlayer.name} se desconectou`,
+        date: new Date(),
+      };
+
       socket.broadcast.emit("update_players_list", connectedPlayers);
       socket.broadcast.emit("set_players_playing", playersPlaying);
       socket.broadcast.emit("set_active_player", activePlayer);
