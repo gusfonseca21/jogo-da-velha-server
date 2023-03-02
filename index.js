@@ -12,7 +12,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://rolezeiros-jogo-da-velha.netlify.app",
+    origin: "https://jogo-da-velha-gus.netlify.app",
     methods: ["GET", "POST"],
   },
 });
