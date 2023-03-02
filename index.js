@@ -100,7 +100,10 @@ io.on("connection", (socket) => {
       // Atualizando os jogadores que estarão jogando
       if (connectedPlayers.length < 2) playersPlaying.length = 0;
       if (connectedPlayers.length >= 2) {
-        playersPlaying = [connectedPlayers[0], connectedPlayers[1]];
+        playersPlaying = [
+          { ...connectedPlayers[0], roundScore: 0 },
+          { ...connectedPlayers[1], roundScore: 0 },
+        ];
       }
 
       // Se o jogador ativo se disconectar, alterar o jogador ativo
